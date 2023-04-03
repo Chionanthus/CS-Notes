@@ -1,11 +1,15 @@
-**知识点：**
+# ArrayList相关知识与源码阅读
 
-ArrayList允许null值
+* ArrayList底层使用 `Object[]`存储，允许null值
+* 当指定容量为0时，指向的时一个 `static final Object[] EMPTY_ELEMENTDATA={}`用于共享；
+* 当初始化一个默认大小的ArrayList且不赋初始值时，指向的时 `static final Object[] DEFAULTCAPACITY_EMPTY_ELEMENTDATA = {};`用于共享
+* 每次扩容默认是扩成原来的1.5倍
 
+*下方ArrayList源码基于JDK17*
 
-#### 定义
+## 定义
 
-ArrayList位于java.util包下面，继承AbstractList类，实现List `<E>`, RandomAccess, Cloneable, java.io.Serializable接口，支持随机访问，复制，序列化
+ArrayList位于java.util包下面，继承自AbstractList类，实现List `<E>`, RandomAccess, Cloneable, java.io.Serializable接口，所以支持随机访问、复制、序列化。
 
 ```java
 package java.util;
@@ -21,36 +25,36 @@ public class ArrayList<E> extends AbstractList<E>
         implements List<E>, RandomAccess, Cloneable, java.io.Serializable
 ```
 
-#### 类成员对象
+## 类成员对象
 
 ```java
-		@java.io.Serial
-    private static final long serialVersionUID = 8683452581122892189L;
+@java.io.Serial
+private static final long serialVersionUID = 8683452581122892189L
 
-    /**
-     * 初始容量
-     */
-    private static final int DEFAULT_CAPACITY = 10;
+/**
+ * 初始默认容量
+ */
+private static final int DEFAULT_CAPACITY = 10
 
-    /**
-     * 静态共享的容量为空的队列实例（容量为0时的实例）
-     */
-    private static final Object[] EMPTY_ELEMENTDATA = {};
+/**
+ * 静态共享的容量为空的队列实例（容量为0时的实例）
+ */
+private static final Object[] EMPTY_ELEMENTDATA = {};
 
-    /**
-     * 静态共享的空队列实例（容量为默认值，但尚未添加元素的队列实例）
-     */
-    private static final Object[] DEFAULTCAPACITY_EMPTY_ELEMENTDATA = {};
+/**
+ * 静态共享的空队列实例（容量为默认值，但尚未添加元素的队列实例）
+ */
+private static final Object[] DEFAULTCAPACITY_EMPTY_ELEMENTDATA = {};
 
-    /**
-     * 实际存储元素的数组
-     */
-    transient Object[] elementData; // non-private to simplify nested class access
+/**
+ * 实际存储元素的数组
+ */
+transient Object[] elementData; // non-private to simplify nested class access
 
-    /**
-     * 实际存储的元素的数量
-     */
-    private int size;
+/**
+ * 实际存储的元素的数量
+ */
+private int size;
 ```
 
 modcount变量是定义在 AbstractList 中的。记录对 List 操作的次数。主要使用是在 Iterator，是防止在迭代的过程中集合被修改。
@@ -59,13 +63,13 @@ modcount变量是定义在 AbstractList 中的。记录对 List 操作的次数�
 protected transient int modCount = 0;
 ```
 
-#### 构造函数
+## ArrayList构造函数
 
 ```java
-		/**
+    /**
      * 以指定大小初始化容量，指定大小大于0时，分配对象数组；等于0时指向EMPTY_ELEMENTDATA；否则抛出异常
      */
-    public ArrayList(int initialCapacity) {
+   public ArrayList(int initialCapacity) {
         if (initialCapacity > 0) {
             this.elementData = new Object[initialCapacity];
         } else if (initialCapacity == 0) {
@@ -75,6 +79,7 @@ protected transient int modCount = 0;
                                                initialCapacity);
         }
     }
+  
 
     /**
      * 默认空的初始化构造函数，指向DEFAULTCAPACITY_EMPTY_ELEMENTDATA
@@ -87,6 +92,7 @@ protected transient int modCount = 0;
      * 使用一个集合来构造这个ArrayList
      */
     public ArrayList(Collection<? extends E> c) {
+      	// 把c的内容转换成Object数组先
         Object[] a = c.toArray();
         if ((size = a.length) != 0) {
           	// 如果传入的是ArrayList，直接赋值即可
@@ -104,14 +110,14 @@ protected transient int modCount = 0;
 
 ```
 
-#### 扩容机制
+## 扩容机制
 
 默认初始大小为10，但当使用无参构造创建ArrayList时，是创建一个空数组，当对数组添加元素时才真正分配容量
 
 每次期望增长到原来的1.5倍（oldCapacity >> 1）
 
 ```java
-		/**
+	  /**
      * minCapacity是所期望的最小容量
      * 如果所期望容量大于当前数组的长度，且不是初始状态，则增长容量
      */
@@ -125,7 +131,7 @@ protected transient int modCount = 0;
     }
 
     /**
-     * 如果现在List里是空的，则分配默认容量和minCapacity较大值的空间
+     * 如果现在List里是空的，则分配默认容量和minCapacity二者较大值的空间的Object[]
      * 否则扩容为1.5倍（传入旧容量，最少增长容量，和期望增长容量）
      * 期望增长容量是旧容量右移一位，故为原来的0.5倍
      */
@@ -135,12 +141,13 @@ protected transient int modCount = 0;
             int newCapacity = ArraysSupport.newLength(oldCapacity,
                     minCapacity - oldCapacity, /* minimum growth */
                     oldCapacity >> 1           /* preferred growth */);
+          	//把原本数组的元素复制过去
             return elementData = Arrays.copyOf(elementData, newCapacity);
         } else {
             return elementData = new Object[Math.max(DEFAULT_CAPACITY, minCapacity)];
         }
     }
-
+		//不传入minCapacity时每次只增长1个容量
     private Object[] grow() {
         return grow(size + 1);
     }
@@ -166,7 +173,7 @@ public static int newLength(int oldLength, int minGrowth, int prefGrowth) {
 }
 ```
 
-#### 添加/删除元素
+## 添加/删除元素
 
 ```java
 
@@ -195,9 +202,7 @@ public static int newLength(int oldLength, int minGrowth, int prefGrowth) {
     }
 
     /**
-     * This helper method split out from add(E) to keep method
-     * bytecode size under 35 (the -XX:MaxInlineSize default value),
-     * which helps when add(E) is called in a C1-compiled loop.
+     * 一个帮助方法，让字节码大小小于35Byte，C1优化时有用
      */
     private void add(E e, Object[] elementData, int s) {
         if (s == elementData.length)
@@ -214,7 +219,7 @@ public static int newLength(int oldLength, int minGrowth, int prefGrowth) {
         add(e, elementData, size);
         return true;
     }
-	
+
     public void add(int index, E element) {
         rangeCheckForAdd(index);
         modCount++;
@@ -285,7 +290,56 @@ public static int newLength(int oldLength, int minGrowth, int prefGrowth) {
     }
 ```
 
-#### 常用方法
+## 查找元素
+
+ArrayList查找元素是否存在是单纯的从前往后遍历，时间复杂度为`O(n)`
+
+```java
+		public boolean contains(Object o) {
+        return indexOf(o) >= 0;
+    }
+
+    
+    public int indexOf(Object o) {
+        return indexOfRange(o, 0, size);
+    }
+
+    int indexOfRange(Object o, int start, int end) {
+        Object[] es = elementData;
+        if (o == null) {
+            for (int i = start; i < end; i++) {
+                if (es[i] == null) {
+                    return i;
+                }
+            }
+        } else {
+            for (int i = start; i < end; i++) {
+                if (o.equals(es[i])) {
+                    return i;
+                }
+            }
+        }
+        return -1;
+    }
+```
+
+## 排序
+
+调用的还是Arrays.sort，必要的时候把传进来的Comparator传进去。注意使用了类似乐观锁的机制，如果有并发错误则抛出ConcurrentModificationException
+
+```java
+		@Override
+    @SuppressWarnings("unchecked")
+    public void sort(Comparator<? super E> c) {
+        final int expectedModCount = modCount;
+        Arrays.sort((E[]) elementData, 0, size, c);
+        if (modCount != expectedModCount)
+            throw new ConcurrentModificationException();
+        modCount++;
+    }
+```
+
+## 其余常用方法
 
 ```java
  /**
@@ -319,7 +373,7 @@ public static int newLength(int oldLength, int minGrowth, int prefGrowth) {
     public int indexOf(Object o) {
         return indexOfRange(o, 0, size);
     }
-	
+
     int indexOfRange(Object o, int start, int end) {
         Object[] es = elementData;
       	// ArrayList允许null值
@@ -345,7 +399,7 @@ public static int newLength(int oldLength, int minGrowth, int prefGrowth) {
     public Object[] toArray() {
         return Arrays.copyOf(elementData, size);
     }
-	
+
 		@Override
     @SuppressWarnings("unchecked")
     public void sort(Comparator<? super E> c) {
