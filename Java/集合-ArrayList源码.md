@@ -1,15 +1,17 @@
 # ArrayList相关知识与源码阅读
 
+![1680535872846](image/集合-ArrayList源码/1680535872846.png)
+
 * ArrayList底层使用 `Object[]`存储，允许null值
 * 当指定容量为0时，指向的时一个 `static final Object[] EMPTY_ELEMENTDATA={}`用于共享；
+
 * 当初始化一个默认大小的ArrayList且不赋初始值时，指向的时 `static final Object[] DEFAULTCAPACITY_EMPTY_ELEMENTDATA = {};`用于共享
-* 每次扩容默认是扩成原来的1.5倍
 
 *下方ArrayList源码基于JDK17*
 
 ## 定义
 
-ArrayList位于java.util包下面，继承自AbstractList类，实现List `<E>`, RandomAccess, Cloneable, java.io.Serializable接口，所以支持随机访问、复制、序列化。
+ArrayList位于java.util包下面，继承自AbstractList类，实现 `List<E>, RandomAccess, Cloneable, java.io.Serializable`接口，所以支持随机访问、复制、序列化。
 
 ```java
 package java.util;
@@ -117,7 +119,7 @@ protected transient int modCount = 0;
 每次期望增长到原来的1.5倍（oldCapacity >> 1）
 
 ```java
-	  /**
+    /**
      * minCapacity是所期望的最小容量
      * 如果所期望容量大于当前数组的长度，且不是初始状态，则增长容量
      */
@@ -131,7 +133,7 @@ protected transient int modCount = 0;
     }
 
     /**
-     * 如果现在List里是空的，则分配默认容量和minCapacity二者较大值的空间的Object[]
+     * 如果现在List里是空的，则分配默认容量和minCapacity较大值的空间
      * 否则扩容为1.5倍（传入旧容量，最少增长容量，和期望增长容量）
      * 期望增长容量是旧容量右移一位，故为原来的0.5倍
      */
@@ -141,13 +143,12 @@ protected transient int modCount = 0;
             int newCapacity = ArraysSupport.newLength(oldCapacity,
                     minCapacity - oldCapacity, /* minimum growth */
                     oldCapacity >> 1           /* preferred growth */);
-          	//把原本数组的元素复制过去
             return elementData = Arrays.copyOf(elementData, newCapacity);
         } else {
             return elementData = new Object[Math.max(DEFAULT_CAPACITY, minCapacity)];
         }
     }
-		//不传入minCapacity时每次只增长1个容量
+
     private Object[] grow() {
         return grow(size + 1);
     }
@@ -177,8 +178,8 @@ public static int newLength(int oldLength, int minGrowth, int prefGrowth) {
 
 ```java
 
-		// 获取对应下标的元素
-		@SuppressWarnings("unchecked")
+    // 获取对应下标的元素
+    @SuppressWarnings("unchecked")
     E elementData(int index) {
         return (E) elementData[index];
     }
@@ -202,7 +203,9 @@ public static int newLength(int oldLength, int minGrowth, int prefGrowth) {
     }
 
     /**
-     * 一个帮助方法，让字节码大小小于35Byte，C1优化时有用
+     * This helper method split out from add(E) to keep method
+     * bytecode size under 35 (the -XX:MaxInlineSize default value),
+     * which helps when add(E) is called in a C1-compiled loop.
      */
     private void add(E e, Object[] elementData, int s) {
         if (s == elementData.length)
@@ -290,59 +293,10 @@ public static int newLength(int oldLength, int minGrowth, int prefGrowth) {
     }
 ```
 
-## 查找元素
-
-ArrayList查找元素是否存在是单纯的从前往后遍历，时间复杂度为`O(n)`
-
-```java
-		public boolean contains(Object o) {
-        return indexOf(o) >= 0;
-    }
-
-    
-    public int indexOf(Object o) {
-        return indexOfRange(o, 0, size);
-    }
-
-    int indexOfRange(Object o, int start, int end) {
-        Object[] es = elementData;
-        if (o == null) {
-            for (int i = start; i < end; i++) {
-                if (es[i] == null) {
-                    return i;
-                }
-            }
-        } else {
-            for (int i = start; i < end; i++) {
-                if (o.equals(es[i])) {
-                    return i;
-                }
-            }
-        }
-        return -1;
-    }
-```
-
-## 排序
-
-调用的还是Arrays.sort，必要的时候把传进来的Comparator传进去。注意使用了类似乐观锁的机制，如果有并发错误则抛出ConcurrentModificationException
-
-```java
-		@Override
-    @SuppressWarnings("unchecked")
-    public void sort(Comparator<? super E> c) {
-        final int expectedModCount = modCount;
-        Arrays.sort((E[]) elementData, 0, size, c);
-        if (modCount != expectedModCount)
-            throw new ConcurrentModificationException();
-        modCount++;
-    }
-```
-
 ## 其余常用方法
 
 ```java
- /**
+    /**
      * 把列表修剪成含有元素的大小
      */
     public void trimToSize() {
@@ -376,7 +330,7 @@ ArrayList查找元素是否存在是单纯的从前往后遍历，时间复杂�
 
     int indexOfRange(Object o, int start, int end) {
         Object[] es = elementData;
-      	// ArrayList允许null值
+        // ArrayList允许null值
         if (o == null) {
             for (int i = start; i < end; i++) {
                 if (es[i] == null) {
@@ -400,7 +354,7 @@ ArrayList查找元素是否存在是单纯的从前往后遍历，时间复杂�
         return Arrays.copyOf(elementData, size);
     }
 
-		@Override
+    @Override
     @SuppressWarnings("unchecked")
     public void sort(Comparator<? super E> c) {
         final int expectedModCount = modCount;
