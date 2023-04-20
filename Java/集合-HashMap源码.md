@@ -4,14 +4,12 @@ HashMap底层使用数组（桶）+链表/红黑树实现
 
 <img src="assets/image-20230404182139203.png" alt="image-20230404182139203" style="zoom:50%;" />
 
-- 负载因子默认为0.75，默认大小为16，故此时当Map中的容量超过12时，需要扩容
+- 负载因子默认为0.75，默认大小为16，故此时当Map中的容量超过12时，需要扩容，每次扩容是扩一倍
 - HashMap中table的长度必须是2的幂次。因为当b为2的幂次时，存在：`a % b = a & (b-1)`
 - 官方注释：树节点大概是普通节点的2倍大。
 - 理想的情况下，在经过hashCode后，bins中Node的分布呈泊松分布，选取threshold为0.75，泊松分布中的概率参数λ=0.5，此时，链表长度为8的发生概率为0.00000006
 - 当链表长度超过8时，且哈希表长度大于等于64时，会将桶里的链表转为红黑树。否则会优先扩容。
 - 可以存在一个为null的key
-
-
 
 ## 定义
 
@@ -35,8 +33,6 @@ import jdk.internal.access.SharedSecrets;
 public class HashMap<K,V> extends AbstractMap<K,V>
     implements Map<K,V>, Cloneable, Serializable {
 ```
-
-
 
 ## 类成员对象
 
@@ -117,8 +113,6 @@ static class Node<K,V> implements Map.Entry<K,V> {
         }
     }
 ```
-
-
 
 ## 构造方法
 
@@ -421,4 +415,3 @@ final void treeifyBin(Node<K,V>[] tab, int hash) {
         }
     }
 ```
-
